@@ -1032,6 +1032,313 @@ body.light-theme .calendar-day-cell {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.ministry-focus-banner {
+  grid-column: 1 / -1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.focus-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.focus-pill {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.focus-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.ministry-card.is-focused {
+  grid-column: 1 / -1;
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+}
+
+.ministry-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ministry-quick-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ministry-quick-btn:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.ministry-full-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.ministry-schedule-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ministry-nav-tabs {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.ministry-nav-tab {
+  background: transparent;
+  border: none;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.ministry-nav-tab:hover {
+  color: var(--text-primary);
+}
+
+.ministry-nav-tab.active {
+  background: var(--bg-card-hover);
+  color: var(--color-gathering);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .ministry-nav-tab.active {
+  background: #ffffff;
+  color: var(--color-gathering);
+}
+
+.ministry-readmore-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: var(--color-gathering);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ministry-readmore-link:hover {
+  background: var(--color-gathering);
+  color: #fff;
+  border-color: var(--color-gathering);
+  transform: translateY(-1px);
+}
+
+.readmore-icon {
+  font-size: 0.65rem;
+  transition: transform var(--transition-fast);
+}
+
+.ministry-card-bottom-action {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: center;
+}
+
+.ministry-expand-btn {
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px dashed rgba(59, 130, 246, 0.35);
+  border-radius: var(--radius-sm);
+  color: var(--color-gathering);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.ministry-expand-btn:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: var(--color-gathering);
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+body.light-theme .ministry-expand-btn {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+body.light-theme .ministry-expand-btn:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.ministry-schedule-view-upcoming,
+.ministry-schedule-view-all {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.ministry-schedule-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ministry-schedule-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border-color-hover);
+  transform: translateX(3px);
+}
+
+body.light-theme .ministry-schedule-item {
+  background: #f8fafc;
+}
+
+body.light-theme .ministry-schedule-item:hover {
+  background: #f1f5f9;
+}
+
+.item-date-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-gathering);
+  background: rgba(59, 130, 246, 0.12);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.item-main-info {
+  flex: 1;
+}
+
+.item-title-row {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.item-topic-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.item-sub-row {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ministry-empty-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.75rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-color);
+}
+
+.ministry-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.card-jump-highlight {
+  animation: highlightPulse 1.4s ease-out forwards;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.8);
+    border-color: rgba(99, 102, 241, 1);
+    transform: scale(0.99);
+  }
+  40% {
+    box-shadow: 0 0 0 12px rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 1);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    border-color: var(--border-color);
+    transform: scale(1);
+  }
+}
+
 /* ==========================================================================
    Modals
    ========================================================================== */
@@ -2339,6 +2646,12 @@ body.light-theme .admin-event-item:hover {
   background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
   border-color: #ef4444;
+}
+
+.btn-admin-duplicate:hover {
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  border-color: #63b3ed;
 }
 
 /* Admin Form Grid */

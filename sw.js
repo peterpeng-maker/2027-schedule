@@ -1,5 +1,5 @@
 // Service Worker for 2027 Outreach Schedule
-const CACHE_NAME = "outreach-schedule-2027-v5";
+const CACHE_NAME = "outreach-schedule-2027-v7";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",

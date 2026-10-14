@@ -505,19 +505,58 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     ];
 
+    const focusedCat = (currentCategory !== "all") ? currentCategory : null;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     ministries.forEach(min => {
       const cat = CATEGORY_MAP[min.catKey] || CATEGORY_MAP.gathering;
       const minEvents = appEvents.filter(e => e.category === min.catKey);
+      const isFocused = focusedCat === min.catKey;
+
+      // 分離即將到來日程（今天及之後，若無則取近期 4 場）
+      const futureEvents = minEvents.filter(e => e.date >= todayStr);
+      const upcomingEvents = futureEvents.length > 0 ? futureEvents.slice(0, 4) : minEvents.slice(0, 4);
+      const upcomingCount = upcomingEvents.length;
+      const totalCount = minEvents.length;
+      const hasMore = totalCount > upcomingCount;
 
       const card = document.createElement("div");
-      card.className = "ministry-card";
+      card.className = "ministry-card" + (isFocused ? " is-focused" : "");
+      card.id = `ministryCard-${min.catKey}`;
+      card.dataset.mode = "upcoming";
 
-      const previewRows = minEvents.slice(0, 4).map(e => `
-        <div class="ministry-preview-row" onclick="window.openEventById('${e.id}')">
-          <span>${e.date.replace("2027-", "").replace("-", "/")} ${e.title}</span>
-          <span style="color:var(--text-muted);font-size:0.75rem;">${e.time.split(" ")[0]}</span>
+      const renderRow = (e) => {
+        const dateShort = e.date.replace("2027-", "").replace(/-/g, "/");
+        const topicTag = e.topic ? `<span class="item-topic-tag">📖 ${e.topic}</span>` : "";
+        return `
+          <div class="ministry-schedule-item" onclick="window.openEventById('${e.id}')">
+            <span class="item-date-badge">${dateShort} ${e.dayOfWeek}</span>
+            <div class="item-main-info">
+              <div class="item-title-row">
+                ${e.title}
+                ${topicTag}
+              </div>
+              <div class="item-sub-row">
+                <span>⏰ ${e.time}</span>
+                <span>📍 ${e.location}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const upcomingRowsHtml = upcomingEvents.map(renderRow).join("") || `<div class="ministry-empty-hint">暫無近期日程</div>`;
+      const allRowsHtml = minEvents.map(renderRow).join("");
+
+      const focusBadge = isFocused ? `
+        <div style="display:inline-flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
+          <span class="focus-pill" style="background:${cat.color}25; color:${cat.color}; border:1px solid ${cat.color}60;">
+            🎯 目前篩選中
+          </span>
+          <span class="focus-count">${minEvents.length} 場行程</span>
         </div>
-      `).join("");
+      ` : "";
 
       card.innerHTML = `
         <div class="ministry-card-header">
@@ -530,17 +569,115 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="ministry-freq">⏰ ${min.freq}</div>
             </div>
           </div>
+          <div class="ministry-card-actions">
+            <button class="ministry-quick-btn" onclick="window.jumpToMinistry('${min.catKey}')">
+              🔍 篩選此項
+            </button>
+          </div>
         </div>
+        ${focusBadge}
         <p class="ministry-desc">📍 <strong>主要場地：</strong>${min.loc}<br>${min.desc}</p>
-        <div class="ministry-events-preview">
-          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-bottom:0.25rem;">即將到來日程 (共 ${minEvents.length} 場)：</div>
-          ${previewRows}
+        
+        <!-- Schedule Section with Tab Bar & Read More -->
+        <div class="ministry-full-schedule">
+          <div class="ministry-schedule-nav">
+            <div class="ministry-nav-tabs">
+              <button class="ministry-nav-tab active" data-tab-type="upcoming" onclick="window.setMinistryScheduleMode('${min.catKey}', 'upcoming')">
+                ⚡ 即將到來 (${upcomingCount})
+              </button>
+              <button class="ministry-nav-tab" data-tab-type="all" onclick="window.setMinistryScheduleMode('${min.catKey}', 'all')">
+                📋 全排程 (${totalCount})
+              </button>
+            </div>
+            ${hasMore ? `
+            <button class="ministry-readmore-link" onclick="window.toggleMinistryExpand('${min.catKey}')" title="展開或收合全排程">
+              <span class="readmore-text">閱讀更多</span>
+              <span class="readmore-icon">▼</span>
+            </button>` : ''}
+          </div>
+
+          <!-- Mode 1: Upcoming Schedule Container -->
+          <div class="ministry-schedule-view-upcoming">
+            ${upcomingRowsHtml}
+          </div>
+
+          <!-- Mode 2: Full All-Schedule Container -->
+          <div class="ministry-schedule-view-all" style="display:none;">
+            ${allRowsHtml}
+          </div>
+
+          ${hasMore ? `
+          <div class="ministry-card-bottom-action">
+            <button class="ministry-expand-btn" onclick="window.toggleMinistryExpand('${min.catKey}')">
+              <span class="expand-btn-text">📖 閱讀更多：展開全排程 (${totalCount} 場) ▼</span>
+            </button>
+          </div>` : ''}
         </div>
       `;
 
       container.appendChild(card);
     });
   }
+
+  // Switch between Upcoming and All schedule view
+  window.setMinistryScheduleMode = function(catKey, mode) {
+    const card = document.getElementById(`ministryCard-${catKey}`);
+    if (!card) return;
+    card.dataset.mode = mode;
+
+    const tabs = card.querySelectorAll(".ministry-nav-tab");
+    tabs.forEach(tab => {
+      tab.classList.toggle("active", tab.dataset.tabType === mode);
+    });
+
+    const upcomingView = card.querySelector(".ministry-schedule-view-upcoming");
+    const allView = card.querySelector(".ministry-schedule-view-all");
+    const readMoreBtn = card.querySelector(".ministry-readmore-link");
+    const readMoreText = readMoreBtn ? readMoreBtn.querySelector(".readmore-text") : null;
+    const readMoreIcon = readMoreBtn ? readMoreBtn.querySelector(".readmore-icon") : null;
+    const bottomBtn = card.querySelector(".ministry-expand-btn");
+    const bottomBtnText = bottomBtn ? bottomBtn.querySelector(".expand-btn-text") : null;
+    const totalCount = appEvents.filter(e => e.category === catKey).length;
+
+    if (mode === "all") {
+      if (upcomingView) upcomingView.style.display = "none";
+      if (allView) allView.style.display = "flex";
+      if (readMoreText) readMoreText.textContent = "收合為即將到來";
+      if (readMoreIcon) readMoreIcon.textContent = "▲";
+      if (bottomBtnText) bottomBtnText.textContent = "▲ 收合至即將到來日程";
+    } else {
+      if (upcomingView) upcomingView.style.display = "flex";
+      if (allView) allView.style.display = "none";
+      if (readMoreText) readMoreText.textContent = "閱讀更多";
+      if (readMoreIcon) readMoreIcon.textContent = "▼";
+      if (bottomBtnText) bottomBtnText.textContent = `📖 閱讀更多：展開全排程 (${totalCount} 場) ▼`;
+    }
+  };
+
+  // Toggle expand/collapse between Upcoming and All schedule
+  window.toggleMinistryExpand = function(catKey) {
+    const card = document.getElementById(`ministryCard-${catKey}`);
+    if (!card) return;
+    const currentMode = card.dataset.mode || "upcoming";
+    const newMode = currentMode === "upcoming" ? "all" : "upcoming";
+    window.setMinistryScheduleMode(catKey, newMode);
+  };
+
+  // Jump to a ministry card: update filter + scroll + highlight
+  window.jumpToMinistry = function(catKey) {
+    currentCategory = catKey;
+    filterPills.forEach(p => p.classList.toggle("active", p.dataset.category === catKey));
+    renderAll();
+    if (currentView !== "ministry") switchView("ministry");
+    setTimeout(() => {
+      const card = document.getElementById(`ministryCard-${catKey}`);
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        card.classList.add("card-jump-highlight");
+        card.addEventListener("animationend", () => card.classList.remove("card-jump-highlight"), { once: true });
+      }
+    }, 80);
+  };
 
   // ==========================================
   // Modal Actions
@@ -951,6 +1088,17 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       pill.classList.add("active");
       currentCategory = pill.dataset.category;
       renderAll();
+      // 在事工專案匯整畫面時，自動 scroll 到對應卡片
+      if (currentView === "ministry" && currentCategory !== "all") {
+        setTimeout(() => {
+          const card = document.getElementById(`ministryCard-${currentCategory}`);
+          if (card) {
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+            card.classList.add("card-jump-highlight");
+            card.addEventListener("animationend", () => card.classList.remove("card-jump-highlight"), { once: true });
+          }
+        }, 80);
+      }
     });
   });
 
@@ -1858,6 +2006,18 @@ function setupSheet() {
       });
     }
 
+    // Direct duplicate from Event Detail Modal
+    const modalDuplicateBtn = document.getElementById("modalDuplicateBtn");
+    if (modalDuplicateBtn) {
+      modalDuplicateBtn.addEventListener("click", () => {
+        if (!selectedEvent) return;
+        const targetEvent = selectedEvent;
+        closeEventModal();
+        openAdminModal();
+        duplicateEventToForm(targetEvent);
+      });
+    }
+
     // Tab Switching
     function switchAdminTab(tabName) {
       adminTabs.forEach(tab => {
@@ -1901,6 +2061,31 @@ function setupSheet() {
       if (adminSaveEventBtn) adminSaveEventBtn.textContent = "💾 儲存並新增活動";
       const addTab = document.querySelector('.admin-tab[data-admin-tab="add"]');
       if (addTab) addTab.textContent = "➕ 新增活動";
+    }
+
+    // Duplicate Event: Pre-fill form with copied data but no ID (saves as new event)
+    function duplicateEventToForm(evt) {
+      switchAdminTab("add");
+      // Clear ID so it will be treated as a new event
+      if (editEventId) editEventId.value = "";
+      if (efTitle) efTitle.value = `${evt.title || ""} (複製)`;
+      if (efCategory) efCategory.value = evt.category || "gathering";
+      if (efStatus) efStatus.value = evt.status || "confirmed";
+      // Pre-fill date from original so user can easily keep or adjust day/month
+      if (efDate) efDate.value = evt.date || "";
+      if (efTime) efTime.value = evt.time || "";
+      if (efLocation) efLocation.value = evt.location || "";
+      if (efLocationUrl) efLocationUrl.value = evt.locationUrl || "";
+      if (efTopic) efTopic.value = evt.topic || "";
+      if (efDescription) efDescription.value = evt.description || "";
+      if (efNeeds) efNeeds.value = evt.needs || "";
+      if (efItemsToBring) efItemsToBring.value = evt.itemsToBring || "";
+
+      if (adminSaveEventBtn) adminSaveEventBtn.textContent = "💾 儲存為新活動";
+      const addTab = document.querySelector('.admin-tab[data-admin-tab="add"]');
+      if (addTab) addTab.textContent = "📋 複製新增";
+
+      showToast("📋 已複製活動內容，請確認日期後儲存為新活動！");
     }
 
     // Populate Form for Editing Existing Event
@@ -1973,6 +2158,9 @@ function setupSheet() {
               <button class="btn-admin-action btn-admin-edit" data-id="${evt.id}" title="編輯此活動">
                 ✏️ 編輯
               </button>
+              <button class="btn-admin-action btn-admin-duplicate" data-id="${evt.id}" title="複製此活動（帶入所有欄位，可直接修改日期後儲存為新活動）">
+                📋 複製
+              </button>
               <button class="btn-admin-action btn-admin-delete" data-id="${evt.id}" title="刪除此活動">
                 🗑️
               </button>
@@ -1981,13 +2169,23 @@ function setupSheet() {
         `;
       }).join("");
 
-      // Bind edit and delete button events
+      // Bind edit, duplicate, and delete button events
       adminEventList.querySelectorAll(".btn-admin-edit").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.dataset.id;
           const target = appEvents.find(e => e.id === id);
           if (target) {
             populateFormForEdit(target);
+          }
+        });
+      });
+
+      adminEventList.querySelectorAll(".btn-admin-duplicate").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const target = appEvents.find(e => e.id === id);
+          if (target) {
+            duplicateEventToForm(target);
           }
         });
       });
