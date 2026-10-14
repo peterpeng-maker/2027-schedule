@@ -8,7 +8,26 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentCalendarYear = 2027;
   let currentCalendarMonth = 1; // 1-12
   let selectedEvent = null;
+  const MONTH_NAMES = window.MONTH_NAMES || [
+    "1月 Jan", "2月 Feb", "3月 Mar", "4月 Apr", "5月 May", "6月 Jun",
+    "7月 Jul", "8月 Aug", "9月 Sep", "10月 Oct", "11月 Nov", "12月 Dec"
+  ];
+  const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxhU4NT0F_0a-dd8f125-8_Ma6CQlyWwSvD9ht6QayNa6MJI7ez1MC7ywH70kGz__h8/exec";
+  const STORAGE_CUSTOM_EVENTS = "outreach_custom_events_2027";
   let appEvents = Array.isArray(window.EVENTS_DATA) ? [...window.EVENTS_DATA] : [];
+
+  // Load custom local saved events if available
+  const savedCustom = localStorage.getItem(STORAGE_CUSTOM_EVENTS);
+  if (savedCustom) {
+    try {
+      const parsed = JSON.parse(savedCustom);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        appEvents = parsed;
+      }
+    } catch (e) {
+      console.warn("Failed to parse saved custom events", e);
+    }
+  }
 
   // DOM Elements
   const searchInput = document.getElementById("searchInput");
@@ -79,15 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Deferred PWA Prompt
   let deferredInstallPrompt = null;
 
-  // Initialize
-  initTheme();
-  initGoogleSheetIntegration();
-  updateTotalStats();
-  initCalendarQuickSelect();
-  initMatrixMonthChips();
-  initMobileNavigation();
-  initPWA();
-  renderAll();
+  // (Note: Bootstrapping is safely called at the bottom after all elements & event handlers are declared)
 
   // ==========================================
   // Render Functions
@@ -1148,9 +1159,11 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
     }
   });
 
-  printBtn.addEventListener("click", () => {
-    window.print();
-  });
+  if (printBtn) {
+    printBtn.addEventListener("click", () => {
+      window.print();
+    });
+  }
 
   // ==========================================
   // Google Sheets Database Integration
@@ -1169,12 +1182,115 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
   const sheetStatusDesc = document.getElementById("sheetStatusDesc");
   const sheetUrlInput = document.getElementById("sheetUrlInput");
   const testSheetSyncBtn = document.getElementById("testSheetSyncBtn");
+  const sheetPushBtn = document.getElementById("sheetPushBtn");
+  const copyGasScriptBtn = document.getElementById("copyGasScriptBtn");
   const syncIconSpin = document.getElementById("syncIconSpin");
   const resetSheetBtn = document.getElementById("resetSheetBtn");
   const saveAndSyncSheetBtn = document.getElementById("saveAndSyncSheetBtn");
+  const adminPushToSheetBtn = document.getElementById("adminPushToSheetBtn");
+  const adminConfigSheetBtn = document.getElementById("adminConfigSheetBtn");
+  const adminSyncStatusLabel = document.getElementById("adminSyncStatusLabel");
+
+  const GAS_SCRIPT_CODE = `/**
+ * 2027 年度服事行事曆 - Google Apps Script (Web App) API 接收端
+ * 部署設定：【網頁應用程式】➔ 誰可以存取設為【所有人 (Anyone)】
+ */
+var HEADERS = ["id","category","categoryName","title","date","time","dayOfWeek","month","location","locationUrl","topic","description","needs","itemsToBring","status"];
+
+function doGet(e) {
+  try {
+    var sheet = getTargetSheet_();
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return createJsonResponse_({ status: "success", count: 0, events: [], message: "試算表為空" });
+    }
+    var headerRow = data[0].map(function(h) { return String(h).trim(); });
+    var events = [];
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      if (row.length === 0 || row.every(function(c) { return String(c).trim() === ""; })) continue;
+      var item = {};
+      for (var c = 0; c < headerRow.length; c++) {
+        var key = headerRow[c];
+        if (!key) continue;
+        var val = row[c];
+        if (val instanceof Date) {
+          val = Utilities.formatDate(val, Session.getScriptTimeZone() || "Asia/Taipei", "yyyy-MM-dd");
+        } else {
+          val = val !== null && val !== undefined ? String(val).trim() : "";
+        }
+        item[key] = val;
+      }
+      if (item.month) item.month = parseInt(item.month, 10) || 1;
+      if (item.title) {
+        if (!item.id) item.id = "evt-" + r;
+        events.push(item);
+      }
+    }
+    return createJsonResponse_({ status: "success", count: events.length, events: events, lastUpdated: new Date().toISOString() });
+  } catch (err) {
+    return createJsonResponse_({ status: "error", message: err.toString() });
+  }
+}
+
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return createJsonResponse_({ status: "error", message: "缺少 POST 內容" });
+    }
+    var payload = JSON.parse(e.postData.contents);
+    var events = Array.isArray(payload) ? payload : (payload.events || []);
+    var sheet = getTargetSheet_();
+    var lastRow = sheet.getLastRow();
+    var lastCol = Math.max(sheet.getLastColumn(), HEADERS.length);
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, lastCol).clearContent();
+    }
+    if (events.length > 0) {
+      var rows = events.map(function(item) {
+        return HEADERS.map(function(h) {
+          var v = item[h];
+          return v !== undefined && v !== null ? String(v) : "";
+        });
+      });
+      sheet.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+    }
+    return createJsonResponse_({ status: "success", message: "成功寫入 " + events.length + " 筆活動至 Google 試算表！", count: events.length, timestamp: new Date().toISOString() });
+  } catch (err) {
+    return createJsonResponse_({ status: "error", message: err.toString() });
+  }
+}
+
+function createJsonResponse_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getTargetSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName("2027事工行事曆") || ss.getSheetByName("工作表1") || ss.getActiveSheet();
+}
+
+function setupSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("2027事工行事曆") || ss.getActiveSheet();
+  sheet.setName("2027事工行事曆");
+  var headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
+  headerRange.setValues([HEADERS]);
+  headerRange.setFontWeight("bold").setFontColor("#ffffff").setBackground("#1e293b").setHorizontalAlignment("center");
+  sheet.setRowHeight(1, 36);
+  sheet.setFrozenRows(1);
+  Logger.log("✅ 試算表已完成格式初始化！");
+}
+`;
 
   function initGoogleSheetIntegration() {
-    const savedUrl = localStorage.getItem(STORAGE_SHEET_URL);
+    let savedUrl = localStorage.getItem(STORAGE_SHEET_URL);
+    // Automatically apply user deployed Apps Script API if not set or outdated
+    if (!savedUrl || savedUrl.trim() === "" || savedUrl.includes("AKfycb...") || !savedUrl.startsWith("https://script.google.com")) {
+      savedUrl = DEFAULT_GAS_URL;
+      localStorage.setItem(STORAGE_SHEET_URL, DEFAULT_GAS_URL);
+    }
     const cachedData = localStorage.getItem(STORAGE_SHEET_CACHE);
     const lastSync = localStorage.getItem(STORAGE_SHEET_LAST_SYNC);
 
@@ -1190,16 +1306,34 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
           console.error("Failed to parse cached sheet data", e);
         }
       }
-      updateSyncStatusUI("online", lastSync, appEvents.length);
+      const isGas = savedUrl.includes("script.google.com");
+      updateSyncStatusUI(isGas ? "online-api" : "online-csv", lastSync, appEvents.length);
       // Auto refresh in background
       syncFromGoogleSheets(savedUrl, true);
     } else {
       updateSyncStatusUI("offline", null, appEvents.length);
     }
 
+    const sheetConfigBtn = document.getElementById("sheetConfigBtn");
+
     // Event listeners
     if (sheetSyncBtn) {
-      sheetSyncBtn.addEventListener("click", () => {
+      sheetSyncBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const savedUrl = localStorage.getItem(STORAGE_SHEET_URL);
+        if (savedUrl) {
+          showToast("🔄 正在連線 Google 雲端同步資料...");
+          syncFromGoogleSheets(savedUrl, false);
+        } else {
+          openSheetModal();
+          showToast("💡 請先設定 Google Apps Script 或試算表發布網址");
+          if (sheetUrlInput) sheetUrlInput.focus();
+        }
+      });
+    }
+
+    if (sheetConfigBtn) {
+      sheetConfigBtn.addEventListener("click", () => {
         openSheetModal();
       });
     }
@@ -1214,22 +1348,72 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       });
     }
 
+    // Pull from cloud
     if (testSheetSyncBtn) {
       testSheetSyncBtn.addEventListener("click", () => {
         const url = sheetUrlInput ? sheetUrlInput.value.trim() : "";
         if (!url) {
-          showToast("請先輸入 Google 試算表發布網址！");
+          showToast("請先輸入 Google Apps Script API 或試算表網址！");
           return;
         }
         syncFromGoogleSheets(url, false);
       });
     }
 
+    // Push to cloud
+    if (sheetPushBtn) {
+      sheetPushBtn.addEventListener("click", () => {
+        const url = sheetUrlInput ? sheetUrlInput.value.trim() : "";
+        if (!url) {
+          showToast("請先輸入 Google Apps Script (Web App) API 網址！");
+          return;
+        }
+        pushToGoogleSheets(url, false);
+      });
+    }
+
+    // Admin Panel Push
+    if (adminPushToSheetBtn) {
+      adminPushToSheetBtn.addEventListener("click", () => {
+        const savedUrl = localStorage.getItem(STORAGE_SHEET_URL);
+        if (!savedUrl) {
+          openSheetModal();
+          showToast("請先設定 Google Apps Script Web App 網址");
+          return;
+        }
+        pushToGoogleSheets(savedUrl, false);
+      });
+    }
+
+    if (adminConfigSheetBtn) {
+      adminConfigSheetBtn.addEventListener("click", () => {
+        openSheetModal();
+      });
+    }
+
+    // Copy Apps Script code
+    if (copyGasScriptBtn) {
+      copyGasScriptBtn.addEventListener("click", () => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(GAS_SCRIPT_CODE).then(() => {
+            showToast("📋 已成功複製 Google Apps Script 腳本程式碼！");
+          }).catch(() => {
+            fallbackCopy(GAS_SCRIPT_CODE);
+            showToast("📋 已成功複製腳本程式碼！");
+          });
+        } else {
+          fallbackCopy(GAS_SCRIPT_CODE);
+          showToast("📋 已成功複製腳本程式碼！");
+        }
+      });
+    }
+
+    // Save and Sync
     if (saveAndSyncSheetBtn) {
       saveAndSyncSheetBtn.addEventListener("click", () => {
         const url = sheetUrlInput ? sheetUrlInput.value.trim() : "";
         if (!url) {
-          showToast("請輸入 Google 試算表網址");
+          showToast("請輸入 Google Apps Script API 或試算表網址");
           return;
         }
         localStorage.setItem(STORAGE_SHEET_URL, url);
@@ -1237,9 +1421,10 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       });
     }
 
+    // Reset button
     if (resetSheetBtn) {
       resetSheetBtn.addEventListener("click", () => {
-        if (confirm("確定要清除 Google 試算表連結，還原為初始本地預設資料嗎？")) {
+        if (confirm("確定要清除 Google 雲端設定，還原為初始本地預設資料嗎？")) {
           localStorage.removeItem(STORAGE_SHEET_URL);
           localStorage.removeItem(STORAGE_SHEET_CACHE);
           localStorage.removeItem(STORAGE_SHEET_LAST_SYNC);
@@ -1254,10 +1439,29 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
     }
   }
 
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (e) {
+      console.warn("execCommand copy failed", e);
+    }
+    document.body.removeChild(ta);
+  }
+
   function openSheetModal() {
     if (sheetModal) {
       sheetModal.style.display = "flex";
       document.body.classList.add("modal-open");
+      const savedUrl = localStorage.getItem(STORAGE_SHEET_URL);
+      if (savedUrl && sheetUrlInput) {
+        sheetUrlInput.value = savedUrl;
+      }
     }
   }
 
@@ -1269,22 +1473,37 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
   }
 
   function updateSyncStatusUI(status, lastSyncTime, eventCount) {
+    const isGasApi = status === "online-api";
+    const isOnline = status === "online" || isGasApi || status === "online-csv";
+
     if (syncStatusDot) {
-      syncStatusDot.className = "status-indicator-dot " + (status === "online" ? "dot-online" : status === "syncing" ? "dot-syncing" : "dot-offline");
-      syncStatusDot.title = status === "online" ? "🟢 已連接 Google Sheets 雲端資料庫" : status === "syncing" ? "🟡 雲端資料同步中..." : "⚪ 目前使用本機離線資料";
+      syncStatusDot.className = "status-indicator-dot " + (isOnline ? "dot-online" : status === "syncing" ? "dot-syncing" : "dot-offline");
+      syncStatusDot.title = isGasApi ? "🟢 已連接 Google Apps Script API (雙向讀寫)" : isOnline ? "🔵 已連接 Google Sheets (CSV 唯讀)" : status === "syncing" ? "🟡 雲端資料同步中..." : "⚪ 目前使用本機離線資料";
     }
 
     if (sheetCurrentStatusDot) {
-      sheetCurrentStatusDot.className = "status-indicator-dot " + (status === "online" ? "dot-online" : status === "syncing" ? "dot-syncing" : "dot-offline");
+      sheetCurrentStatusDot.className = "status-indicator-dot " + (isOnline ? "dot-online" : status === "syncing" ? "dot-syncing" : "dot-offline");
     }
 
     if (sheetCurrentStatusText) {
-      if (status === "online") {
-        sheetCurrentStatusText.textContent = `🟢 已連接 Google Sheets (共 ${eventCount} 筆活動)`;
+      if (isGasApi) {
+        sheetCurrentStatusText.textContent = `🟢 已連接 Google Apps Script API (雙向讀寫 · 共 ${eventCount} 筆)`;
+      } else if (isOnline) {
+        sheetCurrentStatusText.textContent = `🔵 已連接 Google 試算表 CSV (唯讀同步 · 共 ${eventCount} 筆)`;
       } else if (status === "syncing") {
-        sheetCurrentStatusText.textContent = "🟡 正在從 Google Sheets 同步最新資料...";
+        sheetCurrentStatusText.textContent = "🟡 正在與 Google 雲端進行資料同步...";
       } else {
         sheetCurrentStatusText.textContent = "⚪ 目前使用：本地預設資料 (離線備份)";
+      }
+    }
+
+    if (adminSyncStatusLabel) {
+      if (isGasApi) {
+        adminSyncStatusLabel.innerHTML = `<span style="color:var(--color-gathering);">🟢 已連接 Apps Script API (支援一鍵推送到雲端)</span>`;
+      } else if (isOnline) {
+        adminSyncStatusLabel.innerHTML = `<span style="color:#38bdf8;">🔵 已連接 Google 試算表 (CSV 唯讀模式)</span>`;
+      } else {
+        adminSyncStatusLabel.textContent = "本地離線資料 (尚未設定雲端 API)";
       }
     }
 
@@ -1299,10 +1518,12 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
     }
 
     if (sheetStatusDesc) {
-      if (status === "online") {
-        sheetStatusDesc.innerHTML = `已與 Google 試算表保持即時連線。若在試算表修改了時間、主題或地點，點擊「立即同步」或重新整理網頁即可即時呈現。`;
+      if (isGasApi) {
+        sheetStatusDesc.innerHTML = `✨ <strong>雙向即時連線中</strong>：您可點選「從雲端拉取」獲取 Google 試算表最新修改，或點選「推送到雲端」將手機與本機新增/修改的事工直接寫回試算表！`;
+      } else if (isOnline) {
+        sheetStatusDesc.innerHTML = `已與 Google 試算表保持唯讀連線。在試算表修改內容後點擊同步即可更新。若想直接從網頁回寫試算表，可改用上方推薦的 Google Apps Script (Web App)！`;
       } else {
-        sheetStatusDesc.innerHTML = `設定 Google Sheet 網址後，任何人在試算表上修改或新增活動，手機與電腦都會自動同步！`;
+        sheetStatusDesc.innerHTML = `設定 Google Apps Script Web App 或試算表連結後，夥伴在試算表修改行程或您在 App 編輯活動，全體都會自動同步！`;
       }
     }
   }
@@ -1410,6 +1631,8 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
     try {
       updateSyncStatusUI("syncing", localStorage.getItem(STORAGE_SHEET_LAST_SYNC), appEvents.length);
       if (syncIconSpin) syncIconSpin.classList.add("spin");
+      const syncHeaderIcon = document.getElementById("syncHeaderIcon");
+      if (syncHeaderIcon) syncHeaderIcon.classList.add("spin");
 
       // Auto convert standard Google Sheets edit URL to published CSV URL if user pasted standard link
       let fetchUrl = url.trim();
@@ -1420,7 +1643,7 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
         fetchUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
       }
 
-      const res = await fetch(fetchUrl, { cache: "no-store" });
+      const res = await fetch(fetchUrl, { cache: "no-store", redirect: "follow" });
       if (!res.ok) {
         throw new Error(`HTTP 狀態碼 ${res.status}`);
       }
@@ -1430,8 +1653,11 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
 
       // Check if response is JSON (e.g. from Apps Script) or CSV
       const trimmed = text.trim();
-      if (trimmed.startsWith("[") || (trimmed.startsWith("{") && trimmed.includes("events"))) {
+      if (trimmed.startsWith("[") || (trimmed.startsWith("{") && (trimmed.includes("events") || trimmed.includes("status")))) {
         const json = JSON.parse(trimmed);
+        if (json.status === "error") {
+          throw new Error(json.message || "Google Apps Script 執行錯誤");
+        }
         newEvents = Array.isArray(json) ? json : (json.events || []);
       } else {
         const rows = parseCSV(text);
@@ -1439,6 +1665,12 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       }
 
       if (newEvents.length === 0) {
+        if (!isSilent) {
+          if (confirm("雲端試算表目前為空（尚無任何活動資料）。\n\n是否立即將目前的 53 筆活動推送到 Google 試算表？")) {
+            await pushToGoogleSheets(url, false);
+            return;
+          }
+        }
         throw new Error("無法從試算表中辨識出有效的事工活動資料，請確認欄位標題是否正確。");
       }
 
@@ -1446,9 +1678,11 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       const now = new Date().toISOString();
       localStorage.setItem(STORAGE_SHEET_URL, url);
       localStorage.setItem(STORAGE_SHEET_CACHE, JSON.stringify(newEvents));
+      localStorage.setItem(STORAGE_CUSTOM_EVENTS, JSON.stringify(newEvents));
       localStorage.setItem(STORAGE_SHEET_LAST_SYNC, now);
 
-      updateSyncStatusUI("online", now, appEvents.length);
+      const isGas = url.includes("script.google.com");
+      updateSyncStatusUI(isGas ? "online-api" : "online-csv", now, appEvents.length);
       renderAll();
       updateTotalStats();
 
@@ -1460,18 +1694,534 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       console.error("Google Sheets sync error:", err);
       updateSyncStatusUI("offline", localStorage.getItem(STORAGE_SHEET_LAST_SYNC), appEvents.length);
       if (!isSilent) {
-        alert("同步失敗：" + err.message + "\n\n請確認：\n1. 試算表是否已設為「發布到網絡」並選擇 CSV 格式。\n2. 或共用權限是否設為「任何知道連結的人皆可查看」。");
+        alert("同步失敗：" + err.message + "\n\n排查提示：\n1. 若為 Google Apps Script，請確認部署時「誰可以存取」已設為「所有人 (Anyone)」。\n2. 若為 Google 試算表 CSV，請確認已發布到網絡。");
       }
     } finally {
       if (syncIconSpin) syncIconSpin.classList.remove("spin");
+      const syncHeaderIcon = document.getElementById("syncHeaderIcon");
+      if (syncHeaderIcon) syncHeaderIcon.classList.remove("spin");
+    }
+  }
+
+  async function pushToGoogleSheets(url, isSilent = false) {
+    if (!url) {
+      openSheetModal();
+      showToast("💡 請先設定 Google Apps Script Web App 網址");
+      return false;
+    }
+
+    if (!url.includes("script.google.com")) {
+      alert("「推送到雲端」功能需要使用 Google Apps Script (Web App) API 網址。\n\n目前輸入的網址是 Google 試算表 CSV 連結（僅支援唯讀下載）。\n請參考彈窗內的【3 分鐘設定 Google Apps Script】建立 Web App 即可享受一鍵雙向讀寫！");
+      return false;
+    }
+
+    try {
+      updateSyncStatusUI("syncing", localStorage.getItem(STORAGE_SHEET_LAST_SYNC), appEvents.length);
+      if (syncIconSpin) syncIconSpin.classList.add("spin");
+      const syncHeaderIcon = document.getElementById("syncHeaderIcon");
+      if (syncHeaderIcon) syncHeaderIcon.classList.add("spin");
+      showToast("⏳ 正在將活動寫入 Google 試算表...");
+
+      const payload = {
+        action: "sync_all",
+        events: appEvents
+      };
+
+      const res = await fetch(url.trim(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP 狀態碼 ${res.status}`);
+      }
+
+      const text = await res.text();
+      let result = {};
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        result = { status: "success", message: text };
+      }
+
+      if (result.status === "error") {
+        throw new Error(result.message || "Google Apps Script 寫入失敗");
+      }
+
+      const now = new Date().toISOString();
+      localStorage.setItem(STORAGE_SHEET_URL, url);
+      localStorage.setItem(STORAGE_SHEET_CACHE, JSON.stringify(appEvents));
+      localStorage.setItem(STORAGE_SHEET_LAST_SYNC, now);
+
+      updateSyncStatusUI("online-api", now, appEvents.length);
+
+      if (!isSilent) {
+        showToast(`🎉 成功推送到雲端！已寫入 ${appEvents.length} 筆活動至 Google Sheets`);
+      }
+      return true;
+    } catch (err) {
+      console.error("Google Sheets push error:", err);
+      updateSyncStatusUI("offline", localStorage.getItem(STORAGE_SHEET_LAST_SYNC), appEvents.length);
+      if (!isSilent) {
+        alert("推送到 Google 試算表失敗：" + err.message + "\n\n排查建議：\n1. 請確認 Apps Script 部署時【誰可以存取】是否設為【所有人 (Anyone)】。\n2. 網址結尾通常應為 /exec。\n3. 可直接在 Apps Script 執行一次 setupSheet() 確認試算表權限已開啟。");
+      }
+      return false;
+    } finally {
+      if (syncIconSpin) syncIconSpin.classList.remove("spin");
+      const syncHeaderIcon = document.getElementById("syncHeaderIcon");
+      if (syncHeaderIcon) syncHeaderIcon.classList.remove("spin");
+    }
+  }
+
+  // ==========================================
+  // Schedule Admin Edit Manager
+  // ==========================================
+  function initAdminManager() {
+    const adminEditBtn = document.getElementById("adminEditBtn");
+    const adminModal = document.getElementById("adminModal");
+    const closeAdminModalBtn = document.getElementById("closeAdminModalBtn");
+    const adminTabs = document.querySelectorAll(".admin-tab");
+    const adminPanelList = document.getElementById("adminPanelList");
+    const adminPanelAdd = document.getElementById("adminPanelAdd");
+    const adminPanelExport = document.getElementById("adminPanelExport");
+    const adminSearchInput = document.getElementById("adminSearchInput");
+    const adminCategoryFilter = document.getElementById("adminCategoryFilter");
+    const adminEventList = document.getElementById("adminEventList");
+    const adminEventCount = document.getElementById("adminEventCount");
+    const adminEventForm = document.getElementById("adminEventForm");
+    const editEventId = document.getElementById("editEventId");
+    const adminCancelEditBtn = document.getElementById("adminCancelEditBtn");
+    const adminExportCsvBtn = document.getElementById("adminExportCsvBtn");
+    const modalEditBtn = document.getElementById("modalEditBtn");
+
+    // Delete confirm dialog elements
+    const deleteConfirmDialog = document.getElementById("deleteConfirmDialog");
+    const deleteConfirmName = document.getElementById("deleteConfirmName");
+    const deleteCancelBtn = document.getElementById("deleteCancelBtn");
+    const deleteConfirmBtn = document.getElementById("deleteConfirmBtn");
+    let eventIdToDelete = null;
+
+    // Form inputs
+    const efTitle = document.getElementById("ef-title");
+    const efCategory = document.getElementById("ef-category");
+    const efStatus = document.getElementById("ef-status");
+    const efDate = document.getElementById("ef-date");
+    const efTime = document.getElementById("ef-time");
+    const efLocation = document.getElementById("ef-location");
+    const efLocationUrl = document.getElementById("ef-locationUrl");
+    const efTopic = document.getElementById("ef-topic");
+    const efDescription = document.getElementById("ef-description");
+    const efNeeds = document.getElementById("ef-needs");
+    const efItemsToBring = document.getElementById("ef-itemsToBring");
+    const adminSaveEventBtn = document.getElementById("adminSaveEventBtn");
+
+    function openAdminModal() {
+      if (adminModal) {
+        adminModal.style.display = "flex";
+        document.body.classList.add("modal-open");
+        switchAdminTab("list");
+      }
+    }
+
+    function closeAdminModal() {
+      if (adminModal) {
+        adminModal.style.display = "none";
+        document.body.classList.remove("modal-open");
+      }
+    }
+
+    if (adminEditBtn) {
+      adminEditBtn.addEventListener("click", openAdminModal);
+    }
+
+    if (closeAdminModalBtn) {
+      closeAdminModalBtn.addEventListener("click", closeAdminModal);
+    }
+
+    if (adminModal) {
+      adminModal.addEventListener("click", (e) => {
+        if (e.target === adminModal) closeAdminModal();
+      });
+    }
+
+    // Direct edit from Event Detail Modal
+    if (modalEditBtn) {
+      modalEditBtn.addEventListener("click", () => {
+        if (!selectedEvent) return;
+        const targetEvent = selectedEvent;
+        closeEventModal();
+        openAdminModal();
+        populateFormForEdit(targetEvent);
+      });
+    }
+
+    // Tab Switching
+    function switchAdminTab(tabName) {
+      adminTabs.forEach(tab => {
+        if (tab.dataset.adminTab === tabName) {
+          tab.classList.add("active");
+        } else {
+          tab.classList.remove("active");
+        }
+      });
+
+      if (adminPanelList) adminPanelList.style.display = tabName === "list" ? "flex" : "none";
+      if (adminPanelAdd) adminPanelAdd.style.display = tabName === "add" ? "flex" : "none";
+      if (adminPanelExport) adminPanelExport.style.display = tabName === "export" ? "flex" : "none";
+
+      if (tabName === "list") {
+        renderAdminEventList();
+      } else if (tabName === "add") {
+        if (!editEventId.value) {
+          resetAdminForm();
+        }
+      } else if (tabName === "export") {
+        if (adminEventCount) adminEventCount.textContent = appEvents.length;
+      }
+    }
+
+    adminTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        if (tab.dataset.adminTab === "add") {
+          resetAdminForm();
+        }
+        switchAdminTab(tab.dataset.adminTab);
+      });
+    });
+
+    // Reset Form for New Event
+    function resetAdminForm() {
+      if (adminEventForm) adminEventForm.reset();
+      if (editEventId) editEventId.value = "";
+      if (efCategory) efCategory.value = "gathering";
+      if (efStatus) efStatus.value = "confirmed";
+      if (adminSaveEventBtn) adminSaveEventBtn.textContent = "💾 儲存並新增活動";
+      const addTab = document.querySelector('.admin-tab[data-admin-tab="add"]');
+      if (addTab) addTab.textContent = "➕ 新增活動";
+    }
+
+    // Populate Form for Editing Existing Event
+    function populateFormForEdit(evt) {
+      switchAdminTab("add");
+      if (editEventId) editEventId.value = evt.id;
+      if (efTitle) efTitle.value = evt.title || "";
+      if (efCategory) efCategory.value = evt.category || "gathering";
+      if (efStatus) efStatus.value = evt.status || "confirmed";
+      if (efDate) efDate.value = evt.date || "";
+      if (efTime) efTime.value = evt.time || "";
+      if (efLocation) efLocation.value = evt.location || "";
+      if (efLocationUrl) efLocationUrl.value = evt.locationUrl || "";
+      if (efTopic) efTopic.value = evt.topic || "";
+      if (efDescription) efDescription.value = evt.description || "";
+      if (efNeeds) efNeeds.value = evt.needs || "";
+      if (efItemsToBring) efItemsToBring.value = evt.itemsToBring || "";
+
+      if (adminSaveEventBtn) adminSaveEventBtn.textContent = "💾 儲存修改內容";
+      const addTab = document.querySelector('.admin-tab[data-admin-tab="add"]');
+      if (addTab) addTab.textContent = "✏️ 編輯活動";
+    }
+
+    if (adminCancelEditBtn) {
+      adminCancelEditBtn.addEventListener("click", () => {
+        resetAdminForm();
+        switchAdminTab("list");
+      });
+    }
+
+    // Render Event List in Admin Panel
+    function renderAdminEventList() {
+      if (!adminEventList) return;
+      const q = adminSearchInput ? adminSearchInput.value.trim().toLowerCase() : "";
+      const cat = adminCategoryFilter ? adminCategoryFilter.value : "all";
+
+      const filtered = appEvents.filter(evt => {
+        const matchesCat = cat === "all" || evt.category === cat;
+        let matchesQuery = true;
+        if (q) {
+          const text = `${evt.title} ${evt.location} ${evt.topic || ''} ${evt.date}`.toLowerCase();
+          matchesQuery = text.includes(q);
+        }
+        return matchesCat && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        adminEventList.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem;color:var(--text-muted);">無符合條件的活動</div>`;
+        return;
+      }
+
+      adminEventList.innerHTML = filtered.map(evt => {
+        const catInfo = CATEGORY_MAP[evt.category] || { label: evt.categoryName || "活動", badgeClass: "badge-gathering" };
+        const statusBadge = evt.status === "tentative" ? `<span style="color:#f59e0b;font-weight:600;">(暫定)</span>` : "";
+        return `
+          <div class="admin-event-item" data-id="${evt.id}">
+            <div class="admin-event-info">
+              <div class="admin-event-title-row">
+                <span class="badge ${catInfo.badgeClass}" style="font-size:0.75rem;padding:0.15rem 0.5rem;">${catInfo.label}</span>
+                <span class="admin-event-title" title="${escapeHtml(evt.title)}">${escapeHtml(evt.title)}</span>
+                ${statusBadge}
+              </div>
+              <div class="admin-event-meta">
+                <span>📅 ${evt.date} (${evt.dayOfWeek || '待定'})</span>
+                <span>⏰ ${escapeHtml(evt.time)}</span>
+                <span>📍 ${escapeHtml(evt.location)}</span>
+              </div>
+            </div>
+            <div class="admin-event-actions">
+              <button class="btn-admin-action btn-admin-edit" data-id="${evt.id}" title="編輯此活動">
+                ✏️ 編輯
+              </button>
+              <button class="btn-admin-action btn-admin-delete" data-id="${evt.id}" title="刪除此活動">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Bind edit and delete button events
+      adminEventList.querySelectorAll(".btn-admin-edit").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const target = appEvents.find(e => e.id === id);
+          if (target) {
+            populateFormForEdit(target);
+          }
+        });
+      });
+
+      adminEventList.querySelectorAll(".btn-admin-delete").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const target = appEvents.find(e => e.id === id);
+          if (target) {
+            eventIdToDelete = id;
+            if (deleteConfirmName) deleteConfirmName.textContent = `「${target.title}」(${target.date})`;
+            if (deleteConfirmDialog) deleteConfirmDialog.style.display = "flex";
+          }
+        });
+      });
+    }
+
+    if (adminSearchInput) {
+      adminSearchInput.addEventListener("input", renderAdminEventList);
+    }
+    if (adminCategoryFilter) {
+      adminCategoryFilter.addEventListener("change", renderAdminEventList);
+    }
+
+    // Delete dialog handlers
+    if (deleteCancelBtn) {
+      deleteCancelBtn.addEventListener("click", () => {
+        if (deleteConfirmDialog) deleteConfirmDialog.style.display = "none";
+        eventIdToDelete = null;
+      });
+    }
+
+    if (deleteConfirmBtn) {
+      deleteConfirmBtn.addEventListener("click", () => {
+        if (eventIdToDelete) {
+          appEvents = appEvents.filter(e => e.id !== eventIdToDelete);
+          saveCustomEvents();
+          renderAll();
+          updateTotalStats();
+          renderAdminEventList();
+          showToast("🗑️ 活動已刪除");
+          if (deleteConfirmDialog) deleteConfirmDialog.style.display = "none";
+          eventIdToDelete = null;
+        }
+      });
+    }
+
+    // Form Submit Handler (Add or Update)
+    if (adminEventForm) {
+      adminEventForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const id = editEventId ? editEventId.value.trim() : "";
+        const title = efTitle.value.trim();
+        const dateStr = efDate.value.trim();
+        const locationStr = efLocation.value.trim();
+
+        if (!title || !dateStr || !locationStr) {
+          alert("請填寫活動標題、日期與地點！");
+          return;
+        }
+
+        // Calculate month and day of week
+        const d = new Date(dateStr + "T00:00:00");
+        const days = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        const dayOfWeek = isNaN(d.getDay()) ? "" : days[d.getDay()];
+        const monthNum = isNaN(d.getMonth()) ? 1 : d.getMonth() + 1;
+
+        const categoryVal = efCategory.value;
+        const categoryName = CATEGORY_MAP[categoryVal]?.label || "外展活動";
+
+        if (id) {
+          // Update existing
+          const idx = appEvents.findIndex(item => item.id === id);
+          if (idx !== -1) {
+            appEvents[idx] = {
+              ...appEvents[idx],
+              title: title,
+              category: categoryVal,
+              categoryName: categoryName,
+              status: efStatus.value,
+              date: dateStr,
+              time: efTime.value.trim() || "時間待定",
+              dayOfWeek: dayOfWeek,
+              month: monthNum,
+              location: locationStr,
+              locationUrl: efLocationUrl.value.trim(),
+              topic: efTopic.value.trim(),
+              description: efDescription.value.trim(),
+              needs: efNeeds.value.trim(),
+              itemsToBring: efItemsToBring.value.trim()
+            };
+            showToast(`✅ 已更新活動：${title}`);
+          }
+        } else {
+          // Add new event
+          const newId = `evt-${Date.now()}`;
+          const newEvent = {
+            id: newId,
+            category: categoryVal,
+            categoryName: categoryName,
+            title: title,
+            date: dateStr,
+            time: efTime.value.trim() || "時間待定",
+            dayOfWeek: dayOfWeek,
+            month: monthNum,
+            location: locationStr,
+            locationUrl: efLocationUrl.value.trim(),
+            topic: efTopic.value.trim(),
+            description: efDescription.value.trim(),
+            needs: efNeeds.value.trim(),
+            itemsToBring: efItemsToBring.value.trim(),
+            status: efStatus.value
+          };
+          appEvents.push(newEvent);
+          // Sort events by date
+          appEvents.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+          showToast(`🎉 已成功新增活動：${title}`);
+        }
+
+        saveCustomEvents();
+        renderAll();
+        updateTotalStats();
+        resetAdminForm();
+        switchAdminTab("list");
+      });
+    }
+
+    // Persist custom events to LocalStorage
+    function saveCustomEvents() {
+      try {
+        localStorage.setItem(STORAGE_CUSTOM_EVENTS, JSON.stringify(appEvents));
+        localStorage.setItem(STORAGE_SHEET_CACHE, JSON.stringify(appEvents));
+      } catch (err) {
+        console.error("Failed to save custom events to localStorage", err);
+      }
+    }
+
+    // Export CSV (Compatible with Google Sheets)
+    if (adminExportCsvBtn) {
+      adminExportCsvBtn.addEventListener("click", () => {
+        exportEventsToCsv();
+      });
+    }
+
+    function exportEventsToCsv() {
+      const headers = [
+        "id", "category", "categoryName", "title", "date",
+        "time", "dayOfWeek", "month", "location", "locationUrl",
+        "topic", "description", "needs", "itemsToBring", "status"
+      ];
+
+      const escapeCsvCell = (val) => {
+        if (val === undefined || val === null) return "";
+        const str = String(val);
+        if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      let csvContent = "\uFEFF"; // UTF-8 BOM to prevent Excel/Sheets garbled text
+      csvContent += headers.join(",") + "\r\n";
+
+      appEvents.forEach(evt => {
+        const row = [
+          escapeCsvCell(evt.id),
+          escapeCsvCell(evt.category),
+          escapeCsvCell(evt.categoryName),
+          escapeCsvCell(evt.title),
+          escapeCsvCell(evt.date),
+          escapeCsvCell(evt.time),
+          escapeCsvCell(evt.dayOfWeek),
+          escapeCsvCell(evt.month),
+          escapeCsvCell(evt.location),
+          escapeCsvCell(evt.locationUrl),
+          escapeCsvCell(evt.topic),
+          escapeCsvCell(evt.description),
+          escapeCsvCell(evt.needs),
+          escapeCsvCell(evt.itemsToBring),
+          escapeCsvCell(evt.status)
+        ];
+        csvContent += row.join(",") + "\r\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      const filename = `2027_Outreach_Schedule_Updated_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`📥 已成功匯出 ${appEvents.length} 筆活動 CSV！`);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
   }
 
   function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add("show");
-    setTimeout(() => {
-      toast.classList.remove("show");
-    }, 2800);
+    if (toast) {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2800);
+    }
+  }
+
+  // ==========================================
+  // App Bootstrapping / Initialization
+  // ==========================================
+  try {
+    initTheme();
+    updateTotalStats();
+    initCalendarQuickSelect();
+    initMatrixMonthChips();
+    initMobileNavigation();
+    initPWA();
+    initGoogleSheetIntegration();
+    initAdminManager();
+    renderAll();
+  } catch (initErr) {
+    console.error("App initialization error:", initErr);
   }
 });

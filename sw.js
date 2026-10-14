@@ -1,5 +1,5 @@
 // Service Worker for 2027 Outreach Schedule
-const CACHE_NAME = "outreach-schedule-2027-v2";
+const CACHE_NAME = "outreach-schedule-2027-v5";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -20,7 +20,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -39,6 +39,12 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (event.request.method !== "GET") return;
+
+  const url = event.request.url;
+  // Always fetch fresh for external Google APIs
+  if (url.includes("script.google.com") || url.includes("spreadsheets") || url.includes("googleusercontent.com")) {
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

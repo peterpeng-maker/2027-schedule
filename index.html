@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2027.05">
 </head>
 <body class="dark-theme">
   <!-- Top Background Ambient Glow -->
@@ -63,15 +63,17 @@
           <button id="clearSearchBtn" class="clear-btn" style="display:none;" aria-label="清除搜尋">&times;</button>
         </div>
 
-        <!-- Utility buttons -->
-        <button id="sheetSyncBtn" class="btn btn-secondary action-btn-text" title="Google Sheets 雲端同步與設定">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button id="sheetSyncBtn" class="btn btn-secondary action-btn-text" title="點擊立即從 Google 試算表同步最新資料">
+          <svg id="syncHeaderIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
           <span class="btn-label">雲端同步</span>
           <span id="syncStatusDot" class="status-indicator-dot dot-offline" title="目前狀態：本地資料"></span>
+        </button>
+        <button id="sheetConfigBtn" class="btn btn-icon" title="設定 Google 試算表雲端資料庫網址" aria-label="雲端設定">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
 
         <button id="exportIcsBtn" class="btn btn-secondary action-btn-text" title="下載 .ics 檔匯入 Google / Apple Calendar">
@@ -87,6 +89,11 @@
         <button id="printBtn" class="btn btn-secondary desktop-only" title="列印或另存為 PDF">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
           <span class="btn-label">列印</span>
+        </button>
+
+        <button id="adminEditBtn" class="btn btn-accent action-btn-text" title="新增、編輯或刪除活動（簡易後台）">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          <span class="btn-label">編輯管理</span>
         </button>
 
         <!-- PWA Install Button (Appears on supported browsers/devices) -->
@@ -313,6 +320,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           複製通告
         </button>
+        <button id="modalEditBtn" class="btn btn-secondary" title="直接修改此活動內容">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          編輯此活動
+        </button>
         <button id="modalSingleIcsBtn" class="btn btn-primary" title="下載 .ics 檔至 Apple / 手機行事曆">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           加到行事曆 (.ics)
@@ -385,6 +396,167 @@
     </div>
   </div>
 
+  <!-- =====================================================
+       Admin Edit Manager Modal
+       ===================================================== -->
+  <div id="adminModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card admin-modal-card">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="sheet-icon-badge">✏️</div>
+          <h3 class="modal-title">行事曆編輯管理後台</h3>
+        </div>
+        <button id="closeAdminModalBtn" class="btn-close" aria-label="關閉">&times;</button>
+      </div>
+
+      <!-- Admin Tab Bar -->
+      <div class="admin-tab-bar">
+        <button class="admin-tab active" data-admin-tab="list">📋 活動列表</button>
+        <button class="admin-tab" data-admin-tab="add">➕ 新增活動</button>
+        <button class="admin-tab" data-admin-tab="export">📤 匯出 / 同步</button>
+      </div>
+
+      <!-- Tab: List -->
+      <div class="admin-panel" id="adminPanelList">
+        <div class="admin-list-toolbar">
+          <input type="text" id="adminSearchInput" class="admin-search" placeholder="搜尋活動名稱、地點...">
+          <select id="adminCategoryFilter" class="admin-filter-select">
+            <option value="all">全部類別</option>
+            <option value="gathering">月聚集</option>
+            <option value="core">核心季聚集</option>
+            <option value="bethany">伯大尼主日學</option>
+            <option value="angel">天使樹</option>
+            <option value="mustard">多走一哩路</option>
+            <option value="partner">夥伴關懷</option>
+            <option value="tbd">待定</option>
+          </select>
+        </div>
+        <div id="adminEventList" class="admin-event-list"></div>
+      </div>
+
+      <!-- Tab: Add / Edit -->
+      <div class="admin-panel" id="adminPanelAdd" style="display:none;">
+        <form id="adminEventForm" class="admin-form" autocomplete="off">
+          <input type="hidden" id="editEventId">
+          <div class="admin-form-grid">
+            <div class="admin-form-group full-width">
+              <label class="admin-label">活動標題 *</label>
+              <input type="text" id="ef-title" class="admin-input" placeholder="例：月聚集 Monthly Gathering (1月)" required>
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">類別 *</label>
+              <select id="ef-category" class="admin-input">
+                <option value="gathering">月聚集</option>
+                <option value="core">核心季聚集</option>
+                <option value="bethany">伯大尼主日學</option>
+                <option value="angel">天使樹</option>
+                <option value="mustard">多走一哩路</option>
+                <option value="partner">夥伴關懷</option>
+                <option value="tbd">待定</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">狀態</label>
+              <select id="ef-status" class="admin-input">
+                <option value="confirmed">已確認</option>
+                <option value="tentative">暫定</option>
+                <option value="cancelled">已取消</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">日期 *</label>
+              <input type="date" id="ef-date" class="admin-input" required>
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">時間</label>
+              <input type="text" id="ef-time" class="admin-input" placeholder="例：7:30 PM - 9:30 PM">
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">地點 *</label>
+              <input type="text" id="ef-location" class="admin-input" placeholder="例：Kids Central" required>
+            </div>
+            <div class="admin-form-group">
+              <label class="admin-label">地圖連結</label>
+              <input type="url" id="ef-locationUrl" class="admin-input" placeholder="https://maps.google.com/...">
+            </div>
+            <div class="admin-form-group full-width">
+              <label class="admin-label">主題</label>
+              <input type="text" id="ef-topic" class="admin-input" placeholder="例：新年度宣教異象凝聚">
+            </div>
+            <div class="admin-form-group full-width">
+              <label class="admin-label">活動描述</label>
+              <textarea id="ef-description" class="admin-textarea" rows="3" placeholder="簡述活動內容..."></textarea>
+            </div>
+            <div class="admin-form-group full-width">
+              <label class="admin-label">人手需求</label>
+              <input type="text" id="ef-needs" class="admin-input" placeholder="例：全體同工、外展夥伴參加">
+            </div>
+            <div class="admin-form-group full-width">
+              <label class="admin-label">請攜帶</label>
+              <input type="text" id="ef-itemsToBring" class="admin-input" placeholder="例：筆記本、奉獻信封">
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="button" id="adminCancelEditBtn" class="btn btn-secondary">取消</button>
+            <button type="submit" id="adminSaveEventBtn" class="btn btn-primary">💾 儲存活動</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab: Export -->
+      <div class="admin-panel" id="adminPanelExport" style="display:none;">
+        <div class="admin-export-guide">
+          <div class="export-step-card highlight-card" style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.06);">
+            <div class="export-step-num" style="background:var(--color-gathering);color:#fff;">⚡</div>
+            <div>
+              <strong>方式 A：一鍵推送到 Google Sheets (推薦)</strong>
+              <p>使用 Google Apps Script (Web App) API，只要點擊下方按鈕，就能直接把所有更新即時寫入雲端試算表！</p>
+              <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
+                <button id="adminPushToSheetBtn" class="btn btn-primary" title="將目前所有活動寫入 Google Sheets">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  即刻推送到 Google 試算表
+                </button>
+                <button id="adminConfigSheetBtn" class="btn btn-secondary" title="檢查或設定 API 網址">
+                  ⚙️ 檢查連線設定
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="export-step-card">
+            <div class="export-step-num">B</div>
+            <div>
+              <strong>方式 B：下載 CSV 覆蓋試算表</strong>
+              <p>若未使用 Apps Script，可下載標準 UTF-8 CSV 檔案，在 Google 試算表點選「檔案 → 匯入 → 取代試算表」。</p>
+              <button id="adminExportCsvBtn" class="btn btn-secondary" style="margin-top:0.5rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                匯出 CSV 檔案
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-export-info">
+            <span>目前共 <strong id="adminEventCount">0</strong> 筆活動 &nbsp;|&nbsp; 狀態：<span id="adminSyncStatusLabel">本地離線資料</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Confirm Delete Dialog -->
+  <div id="deleteConfirmDialog" class="delete-confirm-overlay" style="display:none;">
+    <div class="delete-confirm-card">
+      <div class="delete-confirm-icon">🗑️</div>
+      <h4>確定要刪除這個活動嗎？</h4>
+      <p id="deleteConfirmName" class="delete-confirm-name"></p>
+      <div class="delete-confirm-actions">
+        <button id="deleteCancelBtn" class="btn btn-secondary">取消</button>
+        <button id="deleteConfirmBtn" class="btn btn-danger">確認刪除</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal for Google Sheets Sync -->
   <div id="sheetModal" class="modal-backdrop" style="display:none;">
     <div class="modal-card wide-card">
@@ -392,7 +564,7 @@
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:0.6rem;">
           <div class="sheet-icon-badge">📊</div>
-          <h3 class="modal-title">Google Sheets 雲端資料庫同步</h3>
+          <h3 class="modal-title">Google Sheets 雲端資料庫雙向同步</h3>
         </div>
         <button id="closeSheetModalBtn" class="btn-close" aria-label="關閉">&times;</button>
       </div>
@@ -407,38 +579,56 @@
             <span id="sheetLastSyncTime" class="sync-time-badge">尚未連接雲端</span>
           </div>
           <p class="sync-status-desc" id="sheetStatusDesc">
-            只要設定 Google 試算表連結，任何同工在線上表格修改或新增活動，手機與電腦就會即時自動同步！
+            支援 <strong>Google Apps Script (Web App) API</strong>，支援雙向讀寫：雲端修改手機即時看、手機編輯一鍵回寫 Google 試算表！
           </p>
         </div>
 
         <!-- Input section -->
         <div class="sheet-form-group">
           <label for="sheetUrlInput" class="sheet-form-label">
-            <strong>Google 試算表發布網址 (CSV / Web App API)</strong>
+            <strong>Google Apps Script (Web App API) 或 試算表發布網址</strong>
           </label>
           <div class="sheet-input-wrapper">
-            <input type="url" id="sheetUrlInput" class="sheet-url-input" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" spellcheck="false" autocomplete="off">
-            <button id="testSheetSyncBtn" class="btn btn-primary" title="立刻抓取並同步試算表">
+            <input type="url" id="sheetUrlInput" class="sheet-url-input" value="https://script.google.com/macros/s/AKfycbxhU4NT0F_0a-dd8f125-8_Ma6CQlyWwSvD9ht6QayNa6MJI7ez1MC7ywH70kGz__h8/exec" placeholder="https://script.google.com/macros/s/AKfycb.../exec" spellcheck="false" autocomplete="off">
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;">
+            <button id="testSheetSyncBtn" class="btn btn-primary" title="從 Google 試算表拉取最新活動">
               <svg id="syncIconSpin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
               </svg>
-              <span>立即同步</span>
+              <span>⬇️ 從雲端拉取 (Pull)</span>
+            </button>
+            <button id="sheetPushBtn" class="btn btn-secondary" title="將本地最新修改推送到 Google 試算表">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>⬆️ 推送到雲端 (Push)</span>
             </button>
           </div>
         </div>
 
-        <!-- Step-by-step guidance -->
-        <div class="sheet-guide-box">
-          <h4 class="sheet-guide-title">📌 3 步驟將 Google Sheet 變成雲端資料庫：</h4>
+        <!-- Apps Script Quick Setup Box -->
+        <div class="sheet-guide-box" style="background:rgba(59,130,246,0.05);border-color:rgba(59,130,246,0.25);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.5rem;">
+            <h4 class="sheet-guide-title" style="margin:0;">⚡ 3 分鐘設定 Google Apps Script (Web App)：</h4>
+            <button id="copyGasScriptBtn" class="btn btn-secondary" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+              📋 複製 Apps Script 腳本程式碼
+            </button>
+          </div>
           <ol class="sheet-guide-steps">
             <li>
-              <strong>準備試算表</strong>：點擊下方「下載範本 CSV」，將檔案上傳到您的 <a href="https://sheets.google.com" target="_blank" rel="noopener">Google 雲端硬碟</a> 並用 Google 試算表開啟。
+              <strong>建立試算表並開啟 Apps Script</strong>：在你的 Google 試算表點選上方選單 <code>擴充功能</code> ➔ <code>Apps Script</code>。
             </li>
             <li>
-              <strong>發布到網絡</strong>：在 Google 試算表點選 <code>檔案</code> ➔ <code>共用</code> ➔ <code>發布到網絡</code>。
+              <strong>貼上腳本並初始化</strong>：清空預設程式碼，貼上剛複製的腳本並儲存 💾；上方選單選 <code>setupSheet</code> 點「執行」，自動建好 15 個欄位與 53 筆活動！
             </li>
             <li>
-              <strong>選擇 CSV 格式並發布</strong>：將格式選為 <code>逗號分隔值 (.csv)</code>，點擊「發布」，複製產生的網址並貼到上方即可！
+              <strong>部署為網頁應用程式 (Web App)</strong>：點右上角 <code>部署</code> ➔ <code>新增部署</code> ➔ 選「網頁應用程式」，將<strong>「誰可以存取」設為【所有人 (Anyone)】</strong>。
+            </li>
+            <li>
+              <strong>複製網址並貼上</strong>：將產生的 <code>/exec</code> 結尾網址貼回上方輸入框，點擊「儲存設定並同步」即可！
             </li>
           </ol>
         </div>
@@ -454,7 +644,7 @@
           </button>
         </div>
         <button id="saveAndSyncSheetBtn" class="btn btn-primary">
-          儲存設定並同步
+          💾 儲存網址設定
         </button>
       </div>
     </div>
@@ -498,7 +688,7 @@
     </button>
   </nav>
 
-  <script src="events-data.js"></script>
-  <script src="app.js"></script>
+  <script src="events-data.js?v=2027.05"></script>
+  <script src="app.js?v=2027.05"></script>
 </body>
 </html>
