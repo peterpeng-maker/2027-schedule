@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background with rounded squircles -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Calendar Base Card -->
+  <g filter="url(#shadow)">
+    <rect x="96" y="112" width="320" height="304" rx="36" fill="#0f172a" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
+    <!-- Calendar Top Bar -->
+    <path d="M96 148 Q96 112 132 112 L380 112 Q416 112 416 148 L416 184 L96 184 Z" fill="url(#goldGrad)"/>
+    <!-- Calendar Pins -->
+    <rect x="160" y="88" width="24" height="48" rx="12" fill="#ffffff" filter="url(#shadow)"/>
+    <rect x="328" y="88" width="24" height="48" rx="12" fill="#ffffff" filter="url(#shadow)"/>
+    
+    <!-- Year 2027 Text -->
+    <text x="256" y="162" font-family="-apple-system, system-ui, sans-serif" font-size="34" font-weight="900" fill="#0f172a" text-anchor="middle" letter-spacing="2">2027</text>
+    
+    <!-- Calendar Grid Dots / Schedule representation -->
+    <!-- Cross / Outreach symbol in center -->
+    <g fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Heart & Cross motif -->
+      <path d="M256 226 V370" stroke="#38bdf8" stroke-width="14"/>
+      <path d="M206 276 H306" stroke="#38bdf8" stroke-width="14"/>
+    </g>
+    <!-- Little glow accents -->
+    <circle cx="160" cy="244" r="10" fill="#10b981"/>
+    <circle cx="352" cy="244" r="10" fill="#ec4899"/>
+    <circle cx="160" cy="336" r="10" fill="#f59e0b"/>
+    <circle cx="352" cy="336" r="10" fill="#a855f7"/>
+  </g>
+</svg>

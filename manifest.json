@@ -1,0 +1,19 @@
+{
+  "name": "2027 外展服事行事曆",
+  "short_name": "2027行事曆",
+  "description": "2027 年度外展事工與團隊服事行事曆，支援跨平台手機離線瀏覽與日曆同步",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0f1d",
+  "theme_color": "#0a0f1d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}
