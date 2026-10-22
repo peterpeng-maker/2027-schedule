@@ -2,6 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // State
+  let selectedYear = "2027"; // "2026", "2027", or "all"
   let currentView = "matrix";
   let currentCategory = "all";
   let searchQuery = "";
@@ -16,13 +17,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_CUSTOM_EVENTS = "outreach_custom_events_2027";
   let appEvents = Array.isArray(window.EVENTS_DATA) ? [...window.EVENTS_DATA] : [];
 
-  // Load custom local saved events if available
+  // Load custom local saved events if available (merging with official defaults so new 2026 events won't be lost)
   const savedCustom = localStorage.getItem(STORAGE_CUSTOM_EVENTS);
   if (savedCustom) {
     try {
       const parsed = JSON.parse(savedCustom);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        appEvents = parsed;
+        const existingIds = new Set(parsed.map(e => e.id));
+        const missingDefaults = (window.EVENTS_DATA || []).filter(e => !existingIds.has(e.id));
+        appEvents = [...parsed, ...missingDefaults];
       }
     } catch (e) {
       console.warn("Failed to parse saved custom events", e);
@@ -30,6 +33,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // DOM Elements
+  const badgeYearText = document.getElementById("badgeYearText");
+  const matrixViewTitle = document.getElementById("matrixViewTitle");
+  const matrixViewSubtitle = document.getElementById("matrixViewSubtitle");
+  const timelineViewTitle = document.getElementById("timelineViewTitle");
+  const timelineViewSubtitle = document.getElementById("timelineViewSubtitle");
+  const statGatheringCount = document.getElementById("statGatheringCount");
+  const statCoreCount = document.getElementById("statCoreCount");
+  const statBethanyCount = document.getElementById("statBethanyCount");
+  const statAngelCount = document.getElementById("statAngelCount");
+  const statMustardCount = document.getElementById("statMustardCount");
+
   const searchInput = document.getElementById("searchInput");
   const clearSearchBtn = document.getElementById("clearSearchBtn");
   const searchBoxContainer = document.getElementById("searchBoxContainer");
@@ -105,6 +119,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   function getFilteredEvents() {
     return appEvents.filter(evt => {
+      // Year filter
+      let matchesYear = true;
+      if (selectedYear !== "all") {
+        matchesYear = evt.date.startsWith(selectedYear + "-");
+      }
+
       // Category filter
       const matchesCategory = (currentCategory === "all") || (evt.category === currentCategory);
       
@@ -116,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         matchesSearch = content.includes(q);
       }
 
-      return matchesCategory && matchesSearch;
+      return matchesYear && matchesCategory && matchesSearch;
     });
   }
 
@@ -126,17 +146,42 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCalendarView();
     renderMinistryView();
     updateFilterNotice();
+    updateTotalStats();
   }
 
   function updateTotalStats() {
-    statTotalEvents.textContent = appEvents.length;
+    const yearEvents = (selectedYear === "all") 
+      ? appEvents 
+      : appEvents.filter(e => e.date.startsWith(selectedYear + "-"));
+
+    if (statTotalEvents) statTotalEvents.textContent = yearEvents.length;
+    if (statGatheringCount) {
+      statGatheringCount.textContent = yearEvents.filter(e => e.category === "gathering").length;
+    }
+    if (statCoreCount) {
+      statCoreCount.textContent = yearEvents.filter(e => e.category === "core").length;
+    }
+    if (statBethanyCount) {
+      statBethanyCount.textContent = yearEvents.filter(e => e.category === "bethany").length;
+    }
+    if (statAngelCount) {
+      statAngelCount.textContent = yearEvents.filter(e => e.category === "angel").length;
+    }
+    if (statMustardCount) {
+      statMustardCount.textContent = yearEvents.filter(e => e.category === "mustard").length;
+    }
   }
 
   function updateFilterNotice() {
-    const isFiltered = currentCategory !== "all" || searchQuery.trim() !== "";
+    const isFiltered = (selectedYear !== "2027") || (currentCategory !== "all") || (searchQuery.trim() !== "");
     if (isFiltered) {
       filterNotice.style.display = "flex";
       let filterText = "目前篩選：";
+      if (selectedYear !== "all") {
+        filterText += `[${selectedYear} 年度] `;
+      } else {
+        filterText += `[跨年度 (全部)] `;
+      }
       if (currentCategory !== "all") {
         filterText += `[${CATEGORY_MAP[currentCategory]?.label || currentCategory}] `;
       }
@@ -190,11 +235,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let eventsHtml = "";
       if (monthEvents.length === 0) {
-        eventsHtml = `<div style="color:var(--text-muted);font-size:0.8rem;padding:0.75rem 0;text-align:center;">此月份無符合條件事工</div>`;
+        eventsHtml = `<div style="color:var(--text-muted);font-size:0.8rem;padding:0.75rem 0;text-align:center;">此月份無排定事工</div>`;
       } else {
         eventsHtml = monthEvents.map(evt => {
           const cat = CATEGORY_MAP[evt.category] || CATEGORY_MAP.gathering;
-          const displayDate = evt.date.replace("2027-", "").replace("-", "/");
+          const displayDate = (selectedYear === "all") 
+            ? evt.date.replace(/-/g, "/") 
+            : `${parseInt(evt.date.slice(5, 7))}/${parseInt(evt.date.slice(8, 10))}`;
           return `
             <div class="month-event-item" data-id="${evt.id}" style="border-left-color: ${cat.color}">
               <div class="month-event-date">${displayDate}</div>
@@ -250,17 +297,29 @@ document.addEventListener("DOMContentLoaded", () => {
         <div style="text-align:center;padding:3rem;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-color);">
           <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔍</div>
           <h3 style="font-size:1.1rem;color:var(--text-primary);margin-bottom:0.3rem;">找不到符合的服事行程</h3>
-          <p style="color:var(--text-secondary);font-size:0.85rem;">請嘗試放寬關鍵字或切換「全部事工」類別。</p>
+          <p style="color:var(--text-secondary);font-size:0.85rem;">請嘗試放寬關鍵字、切換「全部事工」或切換年份。</p>
         </div>
       `;
       return;
     }
 
+    let lastYear = null;
+
     filtered.forEach(evt => {
       const cat = CATEGORY_MAP[evt.category] || CATEGORY_MAP.gathering;
       const dateParts = evt.date.split("-");
+      const currentEvtYear = dateParts[0];
       const monthStr = `${parseInt(dateParts[1])}月`;
       const dayStr = `${parseInt(dateParts[2])}日`;
+
+      // 如果是跨年度 (all)，在年份變更時插入年份分隔標籤
+      if (selectedYear === "all" && lastYear !== currentEvtYear) {
+        lastYear = currentEvtYear;
+        const divider = document.createElement("div");
+        divider.className = "timeline-year-divider";
+        divider.innerHTML = `<span class="timeline-year-divider-pill">📅 ${currentEvtYear} 年度外展行程</span>`;
+        container.appendChild(divider);
+      }
 
       const card = document.createElement("div");
       card.className = "timeline-card";
@@ -268,6 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="timeline-date-block">
+          ${selectedYear === "all" ? `<div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;margin-bottom:2px;">${currentEvtYear}年</div>` : ''}
           <div class="timeline-day">${monthStr} ${dayStr}</div>
           <div class="timeline-month-dow">${evt.dayOfWeek}</div>
           <div class="timeline-time">
@@ -334,7 +394,17 @@ document.addEventListener("DOMContentLoaded", () => {
     calendarDaysGrid.innerHTML = "";
     calendarDayDetails.style.display = "none";
 
-    const filtered = getFilteredEvents();
+    const calendarEvents = appEvents.filter(evt => {
+      const matchesYear = evt.date.startsWith(currentCalendarYear + "-");
+      const matchesCategory = (currentCategory === "all") || (evt.category === currentCategory);
+      let matchesSearch = true;
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase();
+        const content = `${evt.title} ${evt.categoryName} ${evt.topic || ''} ${evt.location} ${evt.description} ${evt.needs || ''} ${evt.month}月 ${evt.date}`.toLowerCase();
+        matchesSearch = content.includes(q);
+      }
+      return matchesYear && matchesCategory && matchesSearch;
+    });
 
     // First day of month (0 = Sun, 1 = Mon ... 6 = Sat)
     const firstDayIndex = new Date(currentCalendarYear, currentCalendarMonth - 1, 1).getDay();
@@ -361,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const formattedDay = String(day).padStart(2, "0");
       const dateString = `${currentCalendarYear}-${formattedMonth}-${formattedDay}`;
 
-      const daysEvents = filtered.filter(e => e.date === dateString);
+      const daysEvents = calendarEvents.filter(e => e.date === dateString);
 
       let eventsHtml = "";
       let dotsHtml = "";
@@ -511,7 +581,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ministries.forEach(min => {
       const cat = CATEGORY_MAP[min.catKey] || CATEGORY_MAP.gathering;
-      const minEvents = appEvents.filter(e => e.category === min.catKey);
+      const minEvents = (selectedYear === "all")
+        ? appEvents.filter(e => e.category === min.catKey)
+        : appEvents.filter(e => e.category === min.catKey && e.date.startsWith(selectedYear + "-"));
       const isFocused = focusedCat === min.catKey;
 
       // 分離即將到來日程（今天及之後，若無則取近期 4 場）
@@ -527,7 +599,9 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.mode = "upcoming";
 
       const renderRow = (e) => {
-        const dateShort = e.date.replace("2027-", "").replace(/-/g, "/");
+        const dateShort = (selectedYear === "all")
+          ? e.date.replace(/-/g, "/")
+          : `${parseInt(e.date.slice(5, 7))}/${parseInt(e.date.slice(8, 10))}`;
         const topicTag = e.topic ? `<span class="item-topic-tag">📖 ${e.topic}</span>` : "";
         return `
           <div class="ministry-schedule-item" onclick="window.openEventById('${e.id}')">
@@ -824,9 +898,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Export All to .ICS File (Apple/Google/Outlook)
   // ==========================================
   exportIcsBtn.addEventListener("click", () => {
-    const icsContent = generateIcsContent(appEvents);
-    downloadIcsFile(icsContent, "2027_Outreach_Schedule_Full.ics");
-    showToast("已成功匯出 2027 全年事工行事曆 (.ics)");
+    const eventsToExport = (selectedYear === "all")
+      ? appEvents
+      : appEvents.filter(e => e.date.startsWith(selectedYear + "-"));
+    const icsContent = generateIcsContent(eventsToExport);
+    const fileName = (selectedYear === "all")
+      ? "Outreach_Schedule_Full.ics"
+      : `${selectedYear}_Outreach_Schedule.ics`;
+    downloadIcsFile(icsContent, fileName);
+    showToast(`已成功匯出 ${selectedYear === "all" ? "全部跨年度" : selectedYear + " 年"} 事工行事曆 (.ics)`);
   });
 
   function generateIcsContent(events) {
@@ -1163,12 +1243,88 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
     });
   }
 
-  // Calendar month buttons
+  // ==========================================
+  // Year Selector Handling
+  // ==========================================
+  function initYearSelector() {
+    const yearPills = document.querySelectorAll(".year-pill");
+    yearPills.forEach(pill => {
+      pill.addEventListener("click", () => {
+        const year = pill.dataset.year;
+        setYear(year);
+      });
+    });
+  }
+
+  function setYear(year) {
+    selectedYear = year;
+
+    // Update Pill Buttons
+    document.querySelectorAll(".year-pill").forEach(pill => {
+      pill.classList.toggle("active", pill.dataset.year === year);
+    });
+
+    // Update Header Brand Badge
+    if (badgeYearText) {
+      if (year === "all") {
+        badgeYearText.textContent = "OUTREACH SCHEDULE (跨年度)";
+      } else {
+        badgeYearText.textContent = `${year} OUTREACH SCHEDULE`;
+      }
+    }
+
+    // Update Section Headings
+    if (matrixViewTitle) {
+      matrixViewTitle.textContent = (year === "all") ? "跨年度 (全部) 12 個月份全景鳥瞰" : `${year} 年度 12 個月份全景鳥瞰`;
+    }
+    if (matrixViewSubtitle) {
+      matrixViewSubtitle.textContent = (year === "all") 
+        ? "整合呈現各年度所有月份事工安排" 
+        : `適合領袖快速掌握 ${year} 年度各月份事工密集度、同工動員安排`;
+    }
+    if (timelineViewTitle) {
+      timelineViewTitle.textContent = (year === "all") ? "跨年度全部外展詳細時間軸" : `${year} 全年外展詳細時間軸`;
+    }
+
+    // Sync Calendar if specific year selected
+    if (year !== "all") {
+      currentCalendarYear = parseInt(year);
+      if (year === "2026") {
+        currentCalendarMonth = 1; // 2026 完整 1-12 月行程，預設從 1 月開始
+      } else if (year === "2027") {
+        currentCalendarMonth = 1;
+      }
+    }
+
+    renderAll();
+  }
+
+  function syncYearPillsFromCalendar() {
+    const yearStr = String(currentCalendarYear);
+    if (selectedYear !== "all" && selectedYear !== yearStr) {
+      selectedYear = yearStr;
+      document.querySelectorAll(".year-pill").forEach(pill => {
+        pill.classList.toggle("active", pill.dataset.year === yearStr);
+      });
+      if (badgeYearText) badgeYearText.textContent = `${yearStr} OUTREACH SCHEDULE`;
+      if (matrixViewTitle) matrixViewTitle.textContent = `${yearStr} 年度 12 個月份全景鳥瞰`;
+      if (timelineViewTitle) timelineViewTitle.textContent = `${yearStr} 全年外展詳細時間軸`;
+      renderMatrixView();
+      renderTimelineView();
+      renderMinistryView();
+      updateFilterNotice();
+      updateTotalStats();
+    }
+  }
+
+  // Calendar month buttons with seamless cross-year flipping
   prevMonthBtn.addEventListener("click", () => {
     if (currentCalendarMonth > 1) {
       currentCalendarMonth--;
     } else {
       currentCalendarMonth = 12;
+      currentCalendarYear--;
+      syncYearPillsFromCalendar();
     }
     renderCalendarView();
   });
@@ -1178,6 +1334,8 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       currentCalendarMonth++;
     } else {
       currentCalendarMonth = 1;
+      currentCalendarYear++;
+      syncYearPillsFromCalendar();
     }
     renderCalendarView();
   });
@@ -1191,6 +1349,8 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js").then((reg) => {
           console.log("2027 Outreach PWA Service Worker Registered with scope:", reg.scope);
+          // Check for service worker updates immediately
+          reg.update();
         }).catch((err) => {
           console.warn("ServiceWorker registration failed:", err);
         });
@@ -1448,7 +1608,9 @@ function setupSheet() {
         try {
           const parsed = JSON.parse(cachedData);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            appEvents = parsed;
+            const cachedIds = new Set(parsed.map(e => e.id));
+            const missingDefaults = (window.EVENTS_DATA || []).filter(e => !cachedIds.has(e.id));
+            appEvents = [...parsed, ...missingDefaults];
           }
         } catch (e) {
           console.error("Failed to parse cached sheet data", e);
@@ -1822,11 +1984,14 @@ function setupSheet() {
         throw new Error("無法從試算表中辨識出有效的事工活動資料，請確認欄位標題是否正確。");
       }
 
-      appEvents = newEvents;
+      // Merge with official default events so 2026/2027 defaults are not lost
+      const sheetIds = new Set(newEvents.map(e => e.id));
+      const missingDefaults = (window.EVENTS_DATA || []).filter(e => !sheetIds.has(e.id));
+      appEvents = [...newEvents, ...missingDefaults];
       const now = new Date().toISOString();
       localStorage.setItem(STORAGE_SHEET_URL, url);
-      localStorage.setItem(STORAGE_SHEET_CACHE, JSON.stringify(newEvents));
-      localStorage.setItem(STORAGE_CUSTOM_EVENTS, JSON.stringify(newEvents));
+      localStorage.setItem(STORAGE_SHEET_CACHE, JSON.stringify(appEvents));
+      localStorage.setItem(STORAGE_CUSTOM_EVENTS, JSON.stringify(appEvents));
       localStorage.setItem(STORAGE_SHEET_LAST_SYNC, now);
 
       const isGas = url.includes("script.google.com");
@@ -2411,6 +2576,7 @@ function setupSheet() {
   // ==========================================
   try {
     initTheme();
+    initYearSelector();
     updateTotalStats();
     initCalendarQuickSelect();
     initMatrixMonthChips();

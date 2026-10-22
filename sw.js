@@ -1,5 +1,5 @@
 // Service Worker for 2027 Outreach Schedule
-const CACHE_NAME = "outreach-schedule-2027-v7";
+const CACHE_NAME = "outreach-schedule-2027-v12";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -11,7 +11,7 @@ const ASSETS_TO_CACHE = [
   "./icon.svg"
 ];
 
-// Install event - caching shell assets
+// Install event - caching shell assets & skip waiting immediately
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -20,7 +20,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Activate event - clean up old caches immediately
+// Activate event - clean up old caches immediately and claim clients
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,7 +35,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch event - cache first, fallback to network
+// Fetch event - network first with cache fallback (ensures latest UI updates are seen immediately)
 self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (event.request.method !== "GET") return;
@@ -46,31 +46,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network-first strategy for instant freshness
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch in background to update cache (stale-while-revalidate)
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {
-          // offline, ignore
-        });
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== "basic") {
-          return response;
-        }
-        const responseToCache = response.clone();
+    fetch(event.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
-        return response;
-      });
+      }
+      return networkResponse;
     }).catch(() => {
-      return caches.match("./index.html");
+      return caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return caches.match("./index.html");
+      });
     })
   );
 });
