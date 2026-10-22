@@ -1103,6 +1103,45 @@ const EVENTS_DATA = [
   },
 
   // ==========================================
+  // 4.1 2026 天使樹事工 (Angel Tree 2026)
+  // ==========================================
+  {
+    id: "angel-2026-launch-prep",
+    title: "聖誕送禮開跑典禮籌備",
+    category: "angel",
+    categoryName: "天使樹事工",
+    date: "2026-12-05",
+    time: "上午 10:00 - 12:30 (典禮籌備)",
+    dayOfWeek: "週六",
+    month: 12,
+    location: "台北合作據點 / 教會 (籌備中)",
+    locationUrl: "",
+    topic: "2026 天使樹聖誕送禮開跑典禮籌備與分工對焦",
+    description: "2026 天使樹聖誕送禮開跑典禮籌備！為受刑人子女與家庭預備送禮開跑儀式，進行服事人力分工、物資核對與流程確認。\n\n📌 目前進度狀態：\n• 目前報名關懷夥伴：13 位\n• 目前完成前置項目：\n1. [關懷夥伴招募說明](https://docs.google.com/presentation/d/1FU_Pb3D-sC_udnhg1__k37JydjaMb_j8/edit?slide=id.h11dcf76717e27257_0_0#slide=id.h11dcf76717e27257_0_0)\n2. [關懷志工報名表](https://docs.google.com/forms/d/e/1FAIpQLSfszvilI7nUylWY0ye2wxAQoI6wDzzof0fXTL30_uq9-GgAZA/viewform?usp=sharing&ouid=101362833456397058496)\n3. [關懷紀錄表](https://peterpeng-maker.github.io/care-record-system/)",
+    needs: "典禮籌備同工、流程主持、關懷夥伴 (目前已報名 13 位)",
+    itemsToBring: "筆記本、筆、開跑籌備事項清單",
+    status: "confirmed"
+  },
+  {
+    id: "angel-2026-gift-delivery",
+    title: "聖誕送禮與分組探訪 (10個家庭)",
+    category: "angel",
+    categoryName: "天使樹事工",
+    date: "2026-12-10",
+    endDate: "2026-12-20",
+    time: "全日/彈性安排 (12/10 週四 ~ 12/20 週日)",
+    dayOfWeek: "週四 - 週日",
+    month: 12,
+    location: "受刑人子女家庭 (雙北地區預計 10 個家庭)",
+    locationUrl: "",
+    topic: "親送聖誕禮物到家 ✕ 送禮後分組探訪陪伴",
+    description: "2026 天使樹聖誕送禮行動！名單預計有 10 個家庭，在 12/10 (四) ~ 12/20 (日) 聖誕送禮期間將收容人父母的心意與聖誕禮物親手送到孩子手中。聖誕送禮後安排分組探訪的時間跟人力，持續跟進關懷。\n\n📌 目前進度狀態：\n• 目前報名關懷夥伴：13 位 (聖誕送禮後安排分組探訪的時間跟人力)\n• 目前完成前置項目：\n1. [關懷夥伴招募說明](https://docs.google.com/presentation/d/1FU_Pb3D-sC_udnhg1__k37JydjaMb_j8/edit?slide=id.h11dcf76717e27257_0_0#slide=id.h11dcf76717e27257_0_0)\n2. [關懷志工報名表](https://docs.google.com/forms/d/e/1FAIpQLSfszvilI7nUylWY0ye2wxAQoI6wDzzof0fXTL30_uq9-GgAZA/viewform?usp=sharing&ouid=101362833456397058496)\n3. [關懷紀錄表](https://peterpeng-maker.github.io/care-record-system/)",
+    needs: "送禮探訪關懷夥伴 (目前已報名 13 位，安排分組探訪時間與人力)",
+    itemsToBring: "包裝禮物、心願卡、福音單張、關懷紀錄表 (線上填寫)",
+    status: "confirmed"
+  },
+
+  // ==========================================
   // 5. 芥菜種 & 無邊界事工
   // ==========================================
   // 5.0 2026 年度外展與先鋒事工 (偏鄉關懷 & 活動外展)

@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
     calendarDayDetails.style.display = "none";
 
     const calendarEvents = appEvents.filter(evt => {
-      const matchesYear = evt.date.startsWith(currentCalendarYear + "-");
+      const matchesYear = evt.date.startsWith(currentCalendarYear + "-") || (evt.endDate && evt.endDate.startsWith(currentCalendarYear + "-"));
       const matchesCategory = (currentCategory === "all") || (evt.category === currentCategory);
       let matchesSearch = true;
       if (searchQuery.trim() !== "") {
@@ -431,7 +431,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const formattedDay = String(day).padStart(2, "0");
       const dateString = `${currentCalendarYear}-${formattedMonth}-${formattedDay}`;
 
-      const daysEvents = calendarEvents.filter(e => e.date === dateString);
+      const daysEvents = calendarEvents.filter(e => {
+        if (e.endDate) {
+          return dateString >= e.date && dateString <= e.endDate;
+        }
+        return e.date === dateString;
+      });
 
       let eventsHtml = "";
       let dotsHtml = "";
@@ -551,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
         name: "天使樹受刑人子女事工",
         freq: "全年度多元任務 (特訓、營隊、送禮、典禮)",
         loc: "校園書房 / 監所 / 仁愛堂浸信會",
-        desc: "陪伴受刑人子女與照顧者家庭。包含3月連續四週特訓、4/5兒童節、7/10快樂營、9月進監填禮物卡（400家庭/500禮物/100教會）與12/4開跑典禮頒獎助學金。",
+        desc: "陪伴受刑人子女與照顧者家庭。2026年12/5聖誕送禮開跑典禮籌備、12/10~12/20親送10個家庭與後續探訪；2027年四週特訓、4/5兒童節、7/10快樂營、9月進監填卡與12/4開跑盛典！",
         icon: "🕊️",
         catKey: "angel"
       },
@@ -768,7 +773,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getEventShareText(evt) {
-    return `【2027 外展服事通告】\n📌 活動：${evt.title}\n📅 日期：${evt.date} (${evt.dayOfWeek})\n⏰ 時間：${evt.time}\n📍 地點：${evt.location}\n${evt.topic ? `📖 主題：${evt.topic}\n` : ''}📋 說明：${evt.description}\n${evt.needs ? `🤝 需求：${evt.needs}\n` : ''}${evt.itemsToBring ? `🎒 攜帶：${evt.itemsToBring}\n` : ''}${evt.locationUrl ? `🗺️ 導航：${evt.locationUrl}\n` : ''}\n邀請大家同心代禱並預備心服事！`;
+    const yearPrefix = evt.date.startsWith("2026") ? "2026" : "2027";
+    return `【${yearPrefix} 外展服事通告】\n📌 活動：${evt.title}\n📅 日期：${evt.date} (${evt.dayOfWeek})\n⏰ 時間：${evt.time}\n📍 地點：${evt.location}\n${evt.topic ? `📖 主題：${evt.topic}\n` : ''}📋 說明：${evt.description}\n${evt.needs ? `🤝 需求：${evt.needs}\n` : ''}${evt.itemsToBring ? `🎒 攜帶：${evt.itemsToBring}\n` : ''}${evt.locationUrl ? `🗺️ 導航：${evt.locationUrl}\n` : ''}\n邀請大家同心代禱並預備心服事！`;
+  }
+
+  function formatRichDescription(desc) {
+    if (!desc) return "";
+    let safe = desc
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    // Convert markdown links [title](url)
+    safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="desc-link-badge">🔗 $1</a>');
+    // Convert standalone urls
+    safe = safe.replace(/(^|[^">])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer" class="desc-link-badge">🔗 $2</a>');
+    return safe.replace(/\n/g, "<br>");
   }
 
   function openEventModal(evt) {
@@ -792,7 +811,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Description
-    modalDescContent.textContent = evt.description;
+    modalDescContent.innerHTML = formatRichDescription(evt.description);
 
     // Needs & Items
     let needsHtml = "";
@@ -1039,12 +1058,14 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
 11/26 奉獻相關 | 12/10 歡慶耶穌聖誕
 
 【天使樹事工 Angel Tree】
-• 1/30 (六) 10AM-3PM 圍爐活動（徵求攝影、錄影、剪輯同工）
-• 3/6, 3/13, 3/20, 3/27 (六) 9AM-12:30PM 第三屆關懷大隊特訓（校園書房4F 免費附午餐）
-• 4/5 (一) 10:30AM-3:30PM 兒童節協辦（採茶/烤肉/闖關）
-• 7/10-7/11 快樂營協辦（新竹聖經書院）
-• 9月 進監送禮推廣（雙北400家庭/500禮物/100間教會）
-• 12/4 (六) 10:00AM-1:30PM 開跑典禮協辦＆頒發獎助學金（仁愛堂浸信會）
+• 2026/12/5 (六) 聖誕送禮開跑典禮籌備
+• 2026/12/10 ~ 12/20 聖誕送禮與分組探訪 (預計10個家庭，報名13位)
+• 2027/1/30 (六) 10AM-3PM 圍爐活動（徵求攝影、錄影、剪輯同工）
+• 2027/3/6, 3/13, 3/20, 3/27 (六) 9AM-12:30PM 第三屆關懷大隊特訓（校園書房4F 免費附午餐）
+• 2027/4/5 (一) 10:30AM-3:30PM 兒童節協辦（採茶/烤肉/闖關）
+• 2027/7/10-7/11 快樂營協辦（新竹聖經書院）
+• 2027/9月 進監送禮推廣（雙北400家庭/500禮物/100間教會）
+• 2027/12/4 (六) 10:00AM-1:30PM 開跑典禮協辦＆頒發獎助學金（仁愛堂浸信會）
 
 【多走一哩路 ＆ 偏鄉宣教】
 • 多走一哩路：台南 1/23, 中區 3/13, 北區 4/10
@@ -1075,9 +1096,19 @@ Q1: 3/4 | Q2: 6/3 | Q3: 9/2 | Q4: 12/2
 
 歡迎夥伴踴躍認領各堂次服事同工（活動帶領、敬拜、隊輔、點心）！`;
     } else if (type === "angel-series") {
-      text = `🕊️【2027 天使樹事工年度行程與特訓招募】
+      text = `🕊️【2026-2027 天使樹事工行程與招募】
 邀請弟兄姊妹一同成為受刑人子女與家庭生命中的天使！
 
+🎄【2026 天使樹最新聖誕送禮行動】
+• 12/5 (六) 聖誕送禮開跑典禮籌備
+• 12/10 (四) ~ 12/20 (日) 聖誕送禮（預計 10 個家庭，送禮後安排分組探訪時間與人力）
+• 目前報名關懷夥伴：13 位
+• 目前完成前置項目：
+  1. 關懷夥伴招募說明：https://docs.google.com/presentation/d/1FU_Pb3D-sC_udnhg1__k37JydjaMb_j8/edit?slide=id.h11dcf76717e27257_0_0#slide=id.h11dcf76717e27257_0_0
+  2. 關懷志工報名表：https://docs.google.com/forms/d/e/1FAIpQLSfszvilI7nUylWY0ye2wxAQoI6wDzzof0fXTL30_uq9-GgAZA/viewform?usp=sharing&ouid=101362833456397058496
+  3. 關懷紀錄表：https://peterpeng-maker.github.io/care-record-system/
+
+🌱【2027 年度規劃】
 1. 1/30 (六) 10AM-3PM 關懷大隊圍爐活動
    急需：攝影、錄影的同工、剪輯志工！
 

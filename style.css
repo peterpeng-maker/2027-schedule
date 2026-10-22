@@ -1594,7 +1594,43 @@ body.light-theme .ministry-schedule-item:hover {
 .modal-desc-content {
   font-size: 0.88rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
+  word-break: break-word;
+}
+
+.modal-desc-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 600;
+  word-break: break-all;
+  transition: opacity 0.2s;
+}
+
+.modal-desc-content a:hover {
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.modal-desc-content .desc-link-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-primary);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.82rem;
+  margin: 0.2rem 0.3rem 0.2rem 0;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  transition: all 0.2s;
+}
+
+.modal-desc-content .desc-link-badge:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
 }
 
 .modal-footer {
